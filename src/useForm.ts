@@ -1048,22 +1048,44 @@ export class FormStore {
         this.triggerOnFieldsChange(resultNamePathList, results);
       });
 
-    const returnPromise: Promise<Store | ValidateErrorEntity | string[]> = summaryPromise
-      .then((): Promise<Store | string[]> => {
-        if (this.lastValidatePromise === summaryPromise) {
-          return Promise.resolve(this.getFieldsValue(namePathList));
-        }
-        return Promise.reject<string[]>([]);
-      })
-      .catch((results: { name: InternalNamePath; errors: string[] }[]) => {
-        const errorList = results.filter(result => result && result.errors.length);
-        return Promise.reject({
-          values: this.getFieldsValue(namePathList),
-          errorFields: errorList,
-          outOfDate: this.lastValidatePromise !== summaryPromise,
+    let returnPromise: Promise<Store | ValidateErrorEntity | string[]>;
+
+    if (promiseList.length > 1) {
+      returnPromise = summaryPromise
+        .then((): Promise<Store | string[]> => {
+          if (this.lastValidatePromise === summaryPromise) {
+            return Promise.resolve(this.getFieldsValue(namePathList));
+          }
+          return Promise.reject<string[]>([]);
+        })
+        .catch((results: { name: InternalNamePath; errors: string[] }[]) => {
+          const errorList = results.filter(result => result && result.errors.length);
+          return Promise.reject({
+            values: this.getFieldsValue(namePathList),
+            errorFields: errorList,
+            outOfDate: this.lastValidatePromise !== summaryPromise,
+          });
         });
-      })
-      .catch<ValidateErrorEntity>(e => e);
+
+      returnPromise.catch<ValidateErrorEntity>(e => e);
+    } else {
+      returnPromise = summaryPromise
+        .then((): Promise<Store | string[]> => {
+          if (this.lastValidatePromise === summaryPromise) {
+            return Promise.resolve(this.getFieldsValue(namePathList));
+          }
+          return Promise.reject<string[]>([]);
+        })
+        .catch((results: { name: InternalNamePath; errors: string[] }[]) => {
+          const errorList = results.filter(result => result && result.errors.length);
+          return Promise.reject({
+            values: this.getFieldsValue(namePathList),
+            errorFields: errorList,
+            outOfDate: this.lastValidatePromise !== summaryPromise,
+          });
+        })
+        .catch<ValidateErrorEntity>(e => e);
+    }
 
     // `validating` changed. Trigger `onFieldsChange`
     const triggerNamePathList = namePathList.filter(namePath =>
