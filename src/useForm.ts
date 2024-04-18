@@ -874,10 +874,13 @@ export class FormStore {
 
     let nameList: NamePath[];
     let options: InternalValidateOptions;
+    let submit = false
 
     if (Array.isArray(arg1) || typeof arg1 === 'string' || typeof arg2 === 'string') {
       nameList = arg1;
       options = arg2;
+    } else if(arg1?.submit) {
+      submit = true
     } else {
       options = arg1;
     }
@@ -1048,44 +1051,28 @@ export class FormStore {
         this.triggerOnFieldsChange(resultNamePathList, results);
       });
 
-    let returnPromise: Promise<Store | ValidateErrorEntity | string[]>;
-
-    if (promiseList.length > 1) {
-      returnPromise = summaryPromise
-        .then((): Promise<Store | string[]> => {
-          if (this.lastValidatePromise === summaryPromise) {
-            return Promise.resolve(this.getFieldsValue(namePathList));
-          }
-          return Promise.reject<string[]>([]);
-        })
-        .catch((results: { name: InternalNamePath; errors: string[] }[]) => {
-          const errorList = results.filter(result => result && result.errors.length);
-          return Promise.reject({
-            values: this.getFieldsValue(namePathList),
-            errorFields: errorList,
-            outOfDate: this.lastValidatePromise !== summaryPromise,
-          });
+    const returnPromise: Promise<Store | ValidateErrorEntity | string[]> = summaryPromise
+      .then((): Promise<Store | string[]> => {
+        if (this.lastValidatePromise === summaryPromise) {
+          return Promise.resolve(this.getFieldsValue(namePathList));
+        }
+        return Promise.reject<string[]>([]);
+      })
+      .catch((results: { name: InternalNamePath; errors: string[] }[]) => {
+        const errorList = results.filter(result => result && result.errors.length);
+        return Promise.reject({
+          values: this.getFieldsValue(namePathList),
+          errorFields: errorList,
+          outOfDate: this.lastValidatePromise !== summaryPromise,
         });
+      })
+      .catch<ValidateErrorEntity>(e => {
+        if (submit) {
+          return Promise.reject(e);
+        }
 
-      returnPromise.catch<ValidateErrorEntity>(e => e);
-    } else {
-      returnPromise = summaryPromise
-        .then((): Promise<Store | string[]> => {
-          if (this.lastValidatePromise === summaryPromise) {
-            return Promise.resolve(this.getFieldsValue(namePathList));
-          }
-          return Promise.reject<string[]>([]);
-        })
-        .catch((results: { name: InternalNamePath; errors: string[] }[]) => {
-          const errorList = results.filter(result => result && result.errors.length);
-          return Promise.reject({
-            values: this.getFieldsValue(namePathList),
-            errorFields: errorList,
-            outOfDate: this.lastValidatePromise !== summaryPromise,
-          });
-        })
-        .catch<ValidateErrorEntity>(e => e);
-    }
+        return e;
+      });
 
     // `validating` changed. Trigger `onFieldsChange`
     const triggerNamePathList = namePathList.filter(namePath =>
@@ -1100,7 +1087,10 @@ export class FormStore {
   private submit = () => {
     this.warningUnhooked();
 
-    this.validateFields()
+    this.validateFields({
+      // @ts-ignore
+      submit: true,
+    })
       .then(values => {
         const { onFinish } = this.callbacks;
         if (onFinish) {
