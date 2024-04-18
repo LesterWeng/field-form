@@ -1049,10 +1049,15 @@ export class FormStore {
           type: 'validateFinish',
         });
         this.triggerOnFieldsChange(resultNamePathList, results);
+        return results
       });
 
     const returnPromise: Promise<Store | ValidateErrorEntity | string[]> = summaryPromise
-      .then((): Promise<Store | string[]> => {
+      .then((results: FieldError[]): Promise<Store | string[]> => {
+        // 仅suspendOnFirstError场景会携带error进入
+        if(this.suspendOnFirstError && results[0]?.errors?.length) {
+          return Promise.reject<string[]>(results);
+        }
         if (this.lastValidatePromise === summaryPromise) {
           return Promise.resolve(this.getFieldsValue(namePathList));
         }
