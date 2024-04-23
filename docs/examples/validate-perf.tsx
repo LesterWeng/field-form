@@ -48,6 +48,7 @@ export default class Demo extends React.Component {
           onFinish={this.onFinish}
           onFinishFailed={this.onFinishFailed}
           validateMessages={myMessages}
+          // suspendOnFirstError
           initialValues={{ remember: true }}
         >
           <LabelField
@@ -55,41 +56,40 @@ export default class Demo extends React.Component {
             messageVariables={{ displayName: '密码' }}
             rules={[
               { required: true },
-              {
-                warningOnly: true,
-                validator: async (_, value: string = '') => {
-                  if (value.length < 6) {
-                    throw new Error('你的 ${displayName} 太短了……');
-                  }
-                },
-              },
+              // {
+              //   warningOnly: true,
+              //   validator: async (_, value: string = '') => {
+              //     if (value.length < 6) {
+              //       throw new Error('你的 ${displayName} 太短了……');
+              //     }
+              //   },
+              // },
             ]}
-            onMetaChange={this.onPasswordError}
+            // onMetaChange={this.onPasswordError}
           >
             <Input placeholder="password" />
           </LabelField>
 
           <LabelField
-            initialValue="123"
             name="password2"
-            dependencies={['password']}
+            // dependencies={['password']}
             messageVariables={{ displayName: '密码2' }}
             rules={[
               { required: true },
-              ({ getFieldValue }) => ({
-                async validator(_, value) {
-                  if (getFieldValue('password') !== value) {
-                    return Promise.reject('password2 is not same as password');
-                  }
-                  return Promise.resolve();
-                },
-              }),
+              // ({ getFieldValue }) => ({
+              //   async validator(_, value) {
+              //     if (getFieldValue('password') !== value) {
+              //       return Promise.reject('password2 is not same as password');
+              //     }
+              //     return Promise.resolve();
+              //   },
+              // }),
             ]}
           >
             <Input placeholder="password 2" />
           </LabelField>
 
-          <LabelField
+          {/* <LabelField
             name="field"
             label="Full of rules"
             messageVariables={{ displayName: '字段' }}
@@ -111,20 +111,7 @@ export default class Demo extends React.Component {
               <input type="checkbox" />
             </Field>
             Remember Me
-          </div>
-
-          <Field shouldUpdate>
-            {(_, __, { getFieldsError, isFieldsTouched }) => {
-              const isAllTouched = isFieldsTouched(['password', 'password2'], true);
-              const hasErrors = !!getFieldsError().filter(({ errors }) => errors.length).length;
-
-              return (
-                <button type="submit" disabled={!isAllTouched || hasErrors}>
-                  Submit
-                </button>
-              );
-            }}
-          </Field>
+          </div> */}
 
           <button
             type="button"
@@ -136,6 +123,15 @@ export default class Demo extends React.Component {
           </button>
           <button type="reset">Reset Native</button>
         </Form>
+        <button
+          onClick={() => {
+            // this.form.validateFields(['password', 'password2']);
+            // this.form.validateFields();
+            this.form.submit()
+          }}
+        >
+          校验
+        </button>
       </div>
     );
   }
